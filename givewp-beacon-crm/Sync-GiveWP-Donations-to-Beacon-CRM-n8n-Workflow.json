@@ -1,0 +1,1994 @@
+{
+  "name": "GiveWP Donations to Beacon",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "givewp-to-beacon",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2976,
+        -32
+      ],
+      "id": "1149998f-ea2c-438c-8644-13ff685c638f",
+      "name": "GiveWP Webhook",
+      "webhookId": "givewp-to-beacon"
+    },
+    {
+      "parameters": {
+        "url": "=https://pangeatrust.org/wp-json/give-api-enhanced/v1/donation/{{$json.body.data.donation.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{$json.body.data.donation.id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2464,
+        -16
+      ],
+      "id": "61432b73-b7bf-4740-b9ea-e789da385e87",
+      "name": "Get GiveWP Donation Details",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "GTphx2O4PO643zv7",
+          "name": "GiveWP Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.beaconcrm.org/v1/account/30139/entities/person/filter",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter_conditions\": [\n    {\n      \"field\": \"emails.email\",\n      \"operator\": \"in\",\n      \"value\": {{ \n        JSON.stringify(\n          (() => {\n            const { email, donor } = $json.donation;\n            return [email, ...(donor?.additionalEmails ?? [\"No email found! Look into this!\"])];\n          })()\n        )\n      }}\n    }\n  ],\n  \"filter_strictness\": \"all\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1184,
+        -16
+      ],
+      "id": "0591915c-c325-4eb6-9dcc-9f2324d0beb1",
+      "name": "Beacon Find Person by Email",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "e1257fbd-df41-49e3-b404-a00f0bb81b91",
+              "leftValue": "={{ $json.total }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -992,
+        -16
+      ],
+      "id": "f6691c28-4ecb-4002-95e6-7112260604da",
+      "name": "If Multiple People?"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Error: More than one Contact matches!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -192
+      ],
+      "id": "8d13ddc7-77ac-4279-b029-693415f26a3b",
+      "name": "Stop: More than one Contact matches!"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/organization/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"primary_field_key\": \"name\",\n  \"entity\": {\n    \"name\": \"{{ $('Get GiveWP Donation Details').item.json.donation.donor.company }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1424,
+        -144
+      ],
+      "id": "1a0ab2ab-deaa-4664-a726-f563cf2e192f",
+      "name": "Beacon Upsert Org",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.beaconcrm.org/v1/account/30139/entities/gift_aid_declaration/filter",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter_conditions\": [\n    {\n      \"field\": \"person\",\n      \"operator\": \"contains\",\n      \"value\": [{{ $('Prepare Person ID').item.json.person_id }}]\n    },\n    {\n      \"field\": \"declaration_date\",\n      \"operator\": \"date_on\",\n      \"value\": \"{{ $json.gift_aid_date }}\",\n      \"ignore\": false\n    }\n  ],\n  \"filter_strictness\": \"all\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        576,
+        -256
+      ],
+      "id": "193b4fdf-7be6-4e3a-8a66-b616730e118f",
+      "name": "Beacon Find Gift Aid Declaration",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Error: More than one Declaration Found. Look into it."
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        -416
+      ],
+      "id": "bbfef84a-a32b-44c7-b30e-b06a93cab70f",
+      "name": "Stop: More than one Declaration Found"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/gift_aid_declaration",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"declaration_date\": \"{{ $('Prepare Gift Aid Date').item.json.gift_aid_date }}\",\n  \"start_date\": \"{{ $('Prepare Gift Aid Date').item.json.gift_aid_date }}\",\n  \"confirmed\": true,\n  \"method\": [\n    \"Website\"\n  ],\n  \"notes\": \"Declaration via GiveWP form, via donation ID #{{ $('Get GiveWP Donation Details').item.json.donation.id }}\\n\\nAddress:\\n{{ $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_card_first_name }} {{ $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_card_last_name }}\\n{{ $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_card_address }}\\n{{ $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_card_zip }}, {{ $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_country }}\",\n  \"person\": [\n    {{ $('Prepare Person ID').item.json.person_id }}\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1088,
+        -256
+      ],
+      "id": "2296c0ec-7f25-4695-9767-11065cf24635",
+      "name": "Beacon Create Gift Aid Declaration",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45d26c3e-722e-4c78-af41-b611ea49f65f",
+              "name": "gift_aid_date",
+              "value": "={{ \n  (() => {\n    const rawDate = $('Get GiveWP Donation Details').item.json.donation.donor.meta._give_gift_aid_opt_in_date;\n    return rawDate ? rawDate.split(\" \")[0] : \"\";\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -256
+      ],
+      "id": "d83f368c-d685-4747-95c0-40c5b4793a1f",
+      "name": "Prepare Gift Aid Date"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n\n  const obj = {};\n\n  //\n  // ORGANIZATION (optional)\n  //\n  const orgId = $('Beacon Upsert Org').isExecuted ? $('Beacon Upsert Org').entity.id : \"\";\n  if (orgId) {\n    obj.organization = [orgId];\n  }\n\n  //\n  // NAME (always present)\n  //\n  obj.name = {\n    first: donation.donor.firstName,\n    last: donation.donor.lastName,\n    prefix: (donation.donor.prefix || \"\").replace(\".\", \"\")\n  };\n\n  //\n  // EMAILS (always present)\n  //\n  const primaryEmail = donation.donor.email || donation.email;\n  const additionalEmails = donation.donor.additionalEmails || [];\n\n  const emailArray = [{ email: primaryEmail, is_primary: true }];\n\n  additionalEmails.forEach(email => {\n    if (email && email !== primaryEmail) {\n      emailArray.push({ email, is_primary: false });\n    }\n  });\n\n  obj.emails = emailArray;\n\n  //\n  // PHONE NUMBERS (optional)\n  //\n  if (donation.donor.phone) {\n    obj.phone_numbers = [{ number: donation.donor.phone, is_primary: true }];\n  }\n\n  //\n  // TYPE (always present)\n  //\n  obj.type = [\"Donor\"];\n\n  //\n  // ADDRESS (optional)\n  //\n  const meta = (donation.donor && donation.donor.meta) || {};\n  const billing = donation.billingAddress || null;\n\n  const buildGiftAidAddress = () => {\n    const hasAny =\n      meta._give_gift_aid_card_address ||\n      meta._give_gift_aid_card_zip ||\n      meta._give_gift_aid_country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: meta._give_gift_aid_card_address || null,\n      address_line_two: null,\n      city: null,\n      region: null,\n      postal_code: meta._give_gift_aid_card_zip || null,\n      country: meta._give_gift_aid_country || null\n    };\n  };\n\n  const buildBillingAddress = () => {\n    if (!billing) return null;\n\n    const hasAny =\n      billing.address1 ||\n      billing.address2 ||\n      billing.city ||\n      billing.state ||\n      billing.zip ||\n      billing.country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: billing.address1 || null,\n      address_line_two: billing.address2 || null,\n      city: billing.city || null,\n      region: billing.state || null,\n      postal_code: billing.zip || null,\n      country: billing.country || null\n    };\n  };\n\n  const addr = buildGiftAidAddress() || buildBillingAddress();\n  if (addr) {\n    obj.address = [addr];\n  }\n\n  //\n  // Email consent (MailChimp)\n  //\n  const isMailchimpMeta = !!donation.meta._give_mc_donation_optin_status;\n  obj.contact_preferences = [\"Email\"]\n\n  //\n  // NOTES (always present)\n  //\n  let notes = \"\";\n  notes += `=== Donation #${donation.id} ===\\n`;\n  notes += `Date: ${donation.createdAt}\\n`;\n  notes += `Amount: ${donation.amount.formatted} ${donation.amount.currency}\\n`;\n  notes += `Fee Recovered: ${donation.feeAmountRecovered.formatted} ${donation.feeAmountRecovered.currency}\\n`;\n  notes += `Type: ${donation.type}\\n`;\n  notes += `Gateway: ${donation.gatewayId}\\n`;\n  notes += `Form: ${donation.formTitle} (#${donation.formId})\\n`;\n  notes += `Campaign: ${donation.campaign?.title || \"N/A\"}\\n`;\n\n  if (donation.type === \"subscription\") {\n    notes += `\\n--- Subscription #${donation.subscriptionId} ---\\n`;\n    notes += `Status: ${donation.subscription.status}\\n`;\n    notes += `Frequency: Every ${donation.subscription.frequency} ${donation.subscription.period}(s)\\n`;\n    notes += `Next Renewal: ${donation.subscription.renewsAt}\\n`;\n    notes += `Gateway Subscription ID: ${donation.subscription.gatewaySubscriptionId}\\n`;\n  }\n\n  if (meta) {\n    if (meta._give_gift_aid_opt_in_date) {\n      notes += `\\nGift Aid Opted In: ${meta._give_gift_aid_opt_in_date}\\n`;\n    }\n    if (meta._give_stripe_customer_id_test) {\n      notes += `Stripe Customer ID (Test): ${meta._give_stripe_customer_id_test}\\n`;\n    }\n  }\n\n  notes += `\\nLast Updated: ${new Date().toISOString()}`;\n\n  obj.c_give_wp_notes = notes;\n\n  //\n  // PRIZE DRAW OPT-IN (optional)\n  //\n  const optIn = donation.meta.c_opt_in_quarterly_prize_draw;\n  if (optIn) {\n    obj.c_opt_in_quarterly_prize_draw = true;\n  }\n\n  //\n  // FINAL OUTPUT — ALWAYS VALID JSON\n  //\n  return JSON.stringify(obj, null, 2);\n})()\n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        0
+      ],
+      "id": "f8d3291c-24b3-48f6-83a1-de023fbf442b",
+      "name": "Prepare Person Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c929ff59-8ef6-427e-9241-7936954e31aa",
+              "leftValue": "={{ $('Beacon Find Person by Email').item.json.total }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        0
+      ],
+      "id": "15b84ca3-1f49-4640-8f8b-3778128b1c60",
+      "name": "If contact found"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/person",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Prepare Person Data').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -272,
+        128
+      ],
+      "id": "2a9eafe5-2a3a-41a2-b33f-4b5b9d79e4ef",
+      "name": "Beacon Create Person",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/campaign/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"primary_field_key\": \"external_id\",\n  \"entity\": {\n    \"external_id\": \"{{ $('Get GiveWP Donation Details').item.json.donation.campaignId }}\",\n    \"name\": \"{{ $('Get GiveWP Donation Details').item.json.donation.campaign.title }}\",\n    \"code\": \"GIVEWP-{{ $('Get GiveWP Donation Details').item.json.donation.campaignId }}\",\n    \"notes\": \"{{ $('Get GiveWP Donation Details').item.json.donation.campaign.shortDescription }}\",\n    \"start_date\": \"{{ $('Get GiveWP Donation Details').item.json.donation.campaign.startDate }}\",\n    \"financial_goal\": {\n      \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.campaign.goal }},\n      \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.form.totalAmountDonated.currency }}\"\n    },\n    \"channel\": [\"Website\"],\n    \"type\": [\"Fundraising\"]\n\n{{ \n    (() => {\n      const rawDate = $('Get GiveWP Donation Details').item.json.donation.campaign.endDate;\n      return rawDate ? \",\\\"end_date\\\": \\\"\" + rawDate.split(\" \")[0] + \"\\\"\" : \"\";\n    })()\n  }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1600,
+        16
+      ],
+      "id": "c76b309a-df35-4d7c-880e-764d870e1d26",
+      "name": "Beacon Upsert Campaign",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/campaign_member",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"campaign\": [{{ $('Beacon Upsert Campaign').item.json.entity.id }}],\n  \"person\": [{{ $('Prepare Person ID').item.json.person_id }}],\n  \"status\": [\"Successful\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2304,
+        192
+      ],
+      "id": "8cd22bf9-4c50-4422-bc1f-8f5da1726614",
+      "name": "Beacon Create Campaign Member",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.beaconcrm.org/v1/account/30139/entities/campaign_member/filter",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter_conditions\": [\n    {\n      \"field\": \"person\",\n      \"operator\": \"contains\",\n      \"value\": [{{ $('Prepare Person ID').item.json.person_id }}],\n      \"ignore\": false\n    },\n    {\n      \"field\": \"campaign\",\n      \"operator\": \"contains\",\n      \"value\": [{{ $('Beacon Upsert Campaign').item.json.entity.id }}],\n      \"ignore\": false\n    }\n  ],\n  \"filter_strictness\": \"all\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1824,
+        16
+      ],
+      "id": "df94448a-604f-491f-9b23-17f15d1e65c3",
+      "name": "Beacon Find Campaign Member",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Error: More than one Campaign Membership found. Look into it."
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2304,
+        -224
+      ],
+      "id": "3cbaa5c5-4fc5-4f80-9842-b8bbf77bc6c6",
+      "name": "Stop: More than one Campaign Membership found"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "542eb73a-7d39-4751-b2e7-07a6de0058cc"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "More than one"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "441745a6-799e-4fe3-8e3e-b02c454c6efe",
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Exactly 1 found"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9b52192d-1404-44ef-a53b-d35b56c15577",
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not found"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2048,
+        0
+      ],
+      "id": "73ad024d-03ee-4997-acca-6697caf5fc37",
+      "name": "Switch: Campaign Member"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "542eb73a-7d39-4751-b2e7-07a6de0058cc"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "More than one"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9b52192d-1404-44ef-a53b-d35b56c15577",
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not found"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "441745a6-799e-4fe3-8e3e-b02c454c6efe",
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Exactly 1 found"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        784,
+        -272
+      ],
+      "id": "1b016fe0-afe8-4e43-be41-cb19162f15dc",
+      "name": "Switch: Gift Aid Declaration"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "14fbe56b-5699-4e0b-ba24-752cf71a956a",
+              "leftValue": "={{ $('GiveWP Webhook').item.json.body.data.donation.subscriptionId }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3248,
+        16
+      ],
+      "id": "907b1af2-127b-4c60-96b8-c768ee755ce7",
+      "name": "If Subscription"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/subscription/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"primary_field_key\": \"external_id\",\n  \"entity\": {\n    \"external_id\": \"{{ $('Get GiveWP Donation Details').item.json.donation.subscription.gatewaySubscriptionId }}\",\n    \"type\": [\"Recurring donation\"],\n    \"source\": [\"GiveWP\"],\n    \"status\": [\"{{ $json.subscription_status }}\"],\n    \"frequency\": [\"{{ $json.subscription_frequency }}\"],\n    \"customer\": [{{ $('Prepare Person ID').item.json.person_id }}],\n    \"amount\": {\n      \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.subscription.amount.formatted }},\n      \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.subscription.amount.currency }}\"\n    },\n    \"covered_fee_amount\": {\n      \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.subscription.feeAmountRecovered.formatted }},\n      \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.subscription.feeAmountRecovered.currency }}\"\n    },\n    \"payment_method\": [\"{{ $('Prepare Payment Fields').item.json.payment_method }}\"],\n    \"campaign\": [{{ $('Beacon Upsert Campaign').item.json.entity.id }}],\n    \"first_payment_date\": \"{{ $('Get GiveWP Donation Details').item.json.donation.subscription.createdAt }}\",\n    \"last_payment_date\": \"{{ $('Get GiveWP Donation Details').item.json.donation.updatedAt }}\",\n    \"next_payment_date\": \"{{ $('Get GiveWP Donation Details').item.json.donation.subscription.renewsAt }}\",\n    \"gift_aid_allowed\": {{ $('Get GiveWP Donation Details').item.json.donation.amount.currency == \"GBP\" }},\n\n    \"c_utm_source\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign_source }}\",\n    \"c_utm_medium\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign_medium }}\",\n    \"c_utm_campaign\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign }}\",\n\n    \"notes\": \"Updated by n8n flow with GiveWP data on {{ new Date().toISOString() }}\\n\\nGiveWP subscription ID: {{ $('Get GiveWP Donation Details').item.json.donation.subscription.id }}, Donation ID: {{ $('Get GiveWP Donation Details').item.json.donation.id }}\",\n\n    \"c_support_for_elephant\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta.c_support_for_elephant }}\"\n\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3664,
+        -208
+      ],
+      "id": "9a6309fc-63ae-4eaf-b93f-dbdfbd483d55",
+      "name": "Beacon Upsert Subscription",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"person_id\": {{ $('Beacon Create Person').isExecuted ? $('Beacon Create Person').item.json.entity.id : $('Beacon Find Person by Email').item.json.results[0].entity.id }}\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "56a6968d-9c07-4dde-b958-5f16143f913a",
+      "name": "Prepare Person ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2207a208-a734-42e7-abf1-c5d5c9eb6c81",
+              "name": "gift_aid_declaration_id",
+              "value": "={{ \n  (() => {\n    const findNode = $('Beacon Find Gift Aid Declaration');\n    const createNode = $('Beacon Create Gift Aid Declaration');\n\n    if (!findNode.isExecuted) {\n      return '';\n    } else if (createNode.isExecuted) {\n      return createNode.item.json.entity.id;\n    } else {\n      return findNode.item.json.results[0].entity.id;\n    }\n  })() \n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1296,
+        16
+      ],
+      "id": "eb87765f-23c7-4bb5-8e9a-15040c12d1e4",
+      "name": "Prepare Gift Aid ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72b5dc8b-49a5-4821-92b7-a5795fa00339",
+              "name": "subscription_status",
+              "value": "={{ (\n  $('Get GiveWP Donation Details').item.json.donation.subscription.status || '').replace(/^./, c => c.toUpperCase()\n) }}",
+              "type": "string"
+            },
+            {
+              "id": "f911d200-c6a7-46f5-8973-44dcc2cbcbff",
+              "name": "subscription_frequency",
+              "value": "={{ (() => {\n  const period = $('Get GiveWP Donation Details').item.json.donation.subscription.period;\n  const frequency = $('Get GiveWP Donation Details').item.json.donation.subscription.frequency;\n\n  return period === 'month' && frequency === 1 ? 'Monthly'\n       : period === 'month' && frequency === 3 ? 'Quarterly'\n       : period === 'year' ? 'Annually'\n       : '';\n})() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3456,
+        -208
+      ],
+      "id": "9a7d945d-ec7c-4374-ba27-bc9ce7d20cd2",
+      "name": "Prepare Sub/Payment Data"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.stripe.com/v1/payment_intents/{{ $('Get GiveWP Donation Details').item.json.donation.gatewayTransactionId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"expand\": [\n    \"payment_method\",\n    \"latest_charge.balance_transaction\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2784,
+        176
+      ],
+      "id": "43745c13-a283-4a85-abe6-ba516a99e130",
+      "name": "Stripe: Get Payment Details",
+      "credentials": {
+        "stripeApi": {
+          "id": "V4RQfsSktVus8MpM",
+          "name": "Stripe Test Mode"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/payment/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"primary_field_key\": \"external_id\",\n  \"entity\": {\n    \"external_id\": \"{{ $('Prepare Payment Fields').item.json.external_id }}\",\n\n    \"subscription\": [{{ $('Beacon Upsert Subscription').isExecuted ? $('Beacon Upsert Subscription').item.json.entity.id : '' }}],\n\n    \"type\": [\"Donation\"],\n    \"source\": [\"GiveWP\"],\n    \"customer\": [{{ $('Prepare Person ID').item.json.person_id }}],\n    \"payment_method\": [\"{{ $('Prepare Payment Fields').item.json.payment_method }}\"],\n\n    \"amount\": {{ JSON.stringify($('Prepare Payment Fields').item.json.amount) }},\n    \"covered_fee_amount\": {{ JSON.stringify($('Prepare Payment Fields').item.json.covered_fee_amount) }},\n    \"payment_gateway_fees\": {{ JSON.stringify($('Prepare Payment Fields').item.json.payment_gateway_fees) }},\n\n    \"campaign\": [{{ $('Beacon Upsert Campaign').item.json.entity.id }}],\n    \"payment_date\": \"{{ $('Get GiveWP Donation Details').item.json.donation.createdAt }}\",\n\n    \"gift_aid_allowed\": {{ $('Get GiveWP Donation Details').item.json.donation.amount.currency == \"GBP\" }},\n    \"gift_aid_declaration\": [{{ $('Prepare Gift Aid ID').item.json.gift_aid_declaration_id }}],\n\n    \"c_utm_source\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign_source }}\",\n    \"c_utm_medium\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign_medium }}\",\n    \"c_utm_campaign\": \"{{ $('Get GiveWP Donation Details').item.json.donation.meta._give_ga_campaign }}\",\n\n    \"notes\": \"Updated by n8n flow with GiveWP data on {{ new Date().toISOString() }}\\n\\nGiveWP Donation ID: {{ $('Get GiveWP Donation Details').item.json.donation.id }}\",\n\n    \"in_memory_of_first_name\": \"{{ $('Prepare Payment Fields').item.json.in_memory_of_first_name }}\",\n    \"in_memory_of_last_name\": \"{{ $('Prepare Payment Fields').item.json.in_memory_of_last_name }}\",\n    \"c_in_honour_of_full_name\": \"{{ $('Prepare Payment Fields').item.json.c_in_honour_of_full_name }}\",\n    \"c_in_honour_of_recipient\": \"{{ $('Prepare Payment Fields').item.json.c_in_honour_of_recipient }}\",\n\n    \"c_support_for_elephant\": \"{{ $('Prepare Payment Fields').item.json.c_support_for_elephant }}\"\n\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3872,
+        32
+      ],
+      "id": "cbe4ad61-5b3f-4be2-8781-c61f8a74297a",
+      "name": "Beacon Upsert Payment",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1ad4568-ce85-4742-99c2-1f23e8d96143",
+              "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.meta._give_gift_aid_accept_term_condition === \"on\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "4049b6c2-c4d6-4b2e-8c4d-4f9f79a36264",
+      "name": "If Gift Aid Opted-in"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "95753a3b-ee68-4abd-9d30-f2b6501b4e9b",
+              "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.donor.company }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1648,
+        -32
+      ],
+      "id": "6f011802-3933-4301-8946-8c6a877cc6ad",
+      "name": "If Company not Empty"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/subscription/{{ $json.results[0].entity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": [\"Cancelled\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1712,
+        -560
+      ],
+      "id": "d2e7d747-5694-40ce-b8d9-6554486f50ac",
+      "name": "Beacon Update Subscription",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://pangeatrust.org/wp-json/give-api-enhanced/v1/subscription/{{ $json.body.data.subscription.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2144,
+        -560
+      ],
+      "id": "bbe345a4-065e-4b6b-a5f8-bb4b6ac9dc33",
+      "name": "Get GiveWP Subscription Details",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "GTphx2O4PO643zv7",
+          "name": "GiveWP Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.beaconcrm.org/v1/account/30139/entities/subscription/filter",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter_conditions\": [\n    {\n      \"field\": \"external_id\",\n      \"operator\": \"==\",\n      \"value\": \"{{ $json.subscription.gatewaySubscriptionId }}\"\n    }\n  ],\n  \"filter_strictness\": \"all\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1920,
+        -560
+      ],
+      "id": "2b966bce-d1ee-4e8d-ba5e-82beb1a791e5",
+      "name": "Beacon Find Subscription",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a06dc2d4-0885-477e-880e-ab0d11582793",
+                    "leftValue": "={{ $json.body.event.type }}",
+                    "rightValue": "subscription_event",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Subscription"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event.type }}",
+                    "rightValue": "donation_event",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "906fb6a7-b618-4563-bcfa-220665ec2da5"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Donation"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -2768,
+        -32
+      ],
+      "id": "f2790454-64ac-4d07-9a43-4953f1407bc0",
+      "name": "Switch: Donation vs Subscription"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.data.subscription.status }}",
+                    "rightValue": "cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "eba81c6c-c029-43f4-8e09-25667a043511"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Subscription Cancelled"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8c9a6bdc-6600-4268-8a42-715f37fabdca",
+                    "leftValue": "={{ $json.body.data.subscription.status }}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Subscription Completed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -2464,
+        -560
+      ],
+      "id": "13aebfe9-3b30-4669-a95c-8fb1cf74d105",
+      "name": "Switch: Subscription Cancelled"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "821769c5-39ab-4ede-82c9-ca7a58aa015b",
+                    "leftValue": "={{ $('GiveWP Webhook').item.json.body.data.donation.status }}",
+                    "rightValue": "publish",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Donation Success"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d799d26b-6e3d-404f-8e90-678f167bbbc0",
+                    "leftValue": "={{ $('GiveWP Webhook').item.json.body.data.donation.status }}",
+                    "rightValue": "refunded",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Donation Refunded"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -2256,
+        -16
+      ],
+      "id": "8336cf88-0ffb-4e2a-8af2-cda1feaf6253",
+      "name": "Switch: Donation Success / Refunded"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.beaconcrm.org/v1/account/30139/entities/payment/filter",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter_conditions\": [\n    {\n      \"field\": \"external_id\",\n      \"operator\": \"==\",\n      \"value\": \"{{ $('Stripe: Get Refund Payment Details').isExecuted ? $('Stripe: Get Refund Payment Details').item.json.latest_charge.id :  $('Get GiveWP Donation Details').item.json.donation.gatewayTransactionId }}\"\n    }\n  ],\n  \"filter_strictness\": \"all\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1616,
+        416
+      ],
+      "id": "36213ab7-353b-41c2-9e6b-dd377df341a5",
+      "name": "Beacon Find Payment",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/payment/{{ $json.results[0].entity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"refunded\": {\n    \"value\": {{ \n      $('Stripe: Get Refund Payment Details').isExecuted\n        ? $('Stripe: Get Refund Payment Details').item.json.latest_charge.amount_refunded / 100\n        : $('Get GiveWP Donation Details').item.json.donation.amount.formatted\n    }},\n    \"currency\": \"{{ \n      $('Stripe: Get Refund Payment Details').isExecuted\n        ? $('Stripe: Get Refund Payment Details').item.json.latest_charge.currency.toUpperCase()\n        : $('Get GiveWP Donation Details').item.json.donation.amount.currency\n    }}\"\n  }\n  {{ \n    // PayPal refunds fees, Stripe doesn't\n    ( () => {\n      const donation = $('Get GiveWP Donation Details').item.json.donation;\n      return donation.gatewayId.startsWith('paypal')\n        ? ', \"payment_gateway_fees\":' + JSON.stringify({\n           value: ''\n          })\n        : '';\n    })()\n  }}\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1360,
+        416
+      ],
+      "id": "09a2aa4e-23da-439a-a7dc-3a59c8e8dfc3",
+      "name": "Beacon Update Payment",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.gatewayId }}",
+                    "rightValue": "paypal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "118caf9a-8693-48b0-b818-3dd7851191c9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Paypal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "53760864-6b7d-4466-a943-f6d664c30608",
+                    "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.gatewayId }}",
+                    "rightValue": "stripe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stripe"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2560,
+        16
+      ],
+      "id": "6570d115-6666-4514-98da-558cf98dc7da",
+      "name": "Switch: Stripe or Paypal"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.beaconcrm.org/v1/account/30139/entity/person/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"primary_field_key\": \"emails\",\n  \"entity\": {{ JSON.stringify($('Prepare Person Data').item.json); }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -272,
+        -144
+      ],
+      "id": "09c925e6-7006-4d73-86c4-5762d90069f6",
+      "name": "Beacon Upsert Person",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "3uVenIiw93AjklHd",
+          "name": "Beacon Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api-m.sandbox.paypal.com/v2/payments/captures/{{ $('Get GiveWP Donation Details').item.json.donation.gatewayTransactionId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2784,
+        -144
+      ],
+      "id": "f789c866-08e7-408d-a966-571728097980",
+      "name": "Paypal: Get Payment Details",
+      "credentials": {
+        "oAuth2Api": {
+          "id": "vQM8YEvrJebmCFgA",
+          "name": "PayPal OAuth2 Sandbox (sb-gge7147363804)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9134eb1c-2912-4964-ad16-fa5c9e186475",
+              "name": "external_id",
+              "value": "={{ \n(() => {\n\nif($('Stripe: Get Payment Details').isExecuted) {\n  return $('Stripe: Get Payment Details').item.json.latest_charge.id;\n} else {\n  return $('Get GiveWP Donation Details').item.json.donation.gatewayTransactionId\n}\n\n})()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "5da6202c-1564-44f2-a531-d90974cb1350",
+              "name": "amount",
+              "value": "={\n  \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.amount.formatted }},  \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.amount.currency }}\"\n}",
+              "type": "object"
+            },
+            {
+              "id": "d4a691f2-af1f-409d-87b8-c7f163689cb4",
+              "name": "covered_fee_amount",
+              "value": "={\n    \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.feeAmountRecovered.formatted }},\n    \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.feeAmountRecovered.currency }}\"\n}",
+              "type": "object"
+            },
+            {
+              "id": "05615bcc-c420-4730-86bb-308035143b6e",
+              "name": "payment_gateway_fees",
+              "value": "={{\n  (() => {\n    let fee = null;\n    let currency = null;\n\n    // Stripe\n    if($('Stripe: Get Payment Details').isExecuted) {\n      const feeDetails = $('Stripe: Get Payment Details').item.json.latest_charge.balance_transaction.fee_details || [];\n      fee = feeDetails[0]?.amount;\n  \n      if (fee === undefined || fee === null) {\n        return {};\n      } else {\n        fee = fee / 100;\n      }\n  \n      currency = (feeDetails[0]?.currency || '').toUpperCase();\n    }\n\n    // Paypal\n    if($('Paypal: Get Payment Details').isExecuted) {\n    fee = $('Paypal: Get Payment Details').item.json.seller_receivable_breakdown.paypal_fee.value;\n    currency = $('Paypal: Get Payment Details').item.json.seller_receivable_breakdown.paypal_fee.currency_code;\n  }\n\n    return {\n      value: fee,\n      currency: currency\n    };\n  \n  })()\n}}",
+              "type": "object"
+            },
+            {
+              "id": "d37ba285-c4eb-430c-a65c-9527d425ac40",
+              "name": "in_memory_of_first_name",
+              "value": "={{\n  (() => {\n    const meta = $('Get GiveWP Donation Details').item.json.donation.meta;\n\n    const type = (meta._give_tributes_type || '').toLowerCase();\n    const first = meta._give_tributes_first_name || '';\n\n    if (type.includes('memory')) {\n      return first;\n    } else {\n      return '';\n    }\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "36b36053-ee9a-4b51-945d-17eac26e8f0f",
+              "name": "in_memory_of_last_name",
+              "value": "={{\n  (() => {\n    const meta = $('Get GiveWP Donation Details').item.json.donation.meta;\n\n    const type = (meta._give_tributes_type || '').toLowerCase();\n    const last = meta._give_tributes_last_name || '';\n\n    if (type.includes('memory')) {\n      return last;\n    } else {\n      return '';\n    }\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "5d61755b-f1d8-4e8b-8166-bc74fcf22fc3",
+              "name": "c_in_honour_of_full_name",
+              "value": "={{\n  (() => {\n    const type = ($('Get GiveWP Donation Details').item.json.donation.meta._give_tributes_type || '').toLowerCase();\n    const first = $('Get GiveWP Donation Details').item.json.donation.meta._give_tributes_first_name || '';\n    const last = $('Get GiveWP Donation Details').item.json.donation.meta._give_tributes_last_name || '';\n\n    if (!type.includes('memory')) {\n      const fullName = (first + ' ' + last).trim();\n      return fullName;\n    } else {\n      return '';\n    }\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "a0883f15-1c5b-494f-913e-f984d486d86f",
+              "name": "c_in_honour_of_recipient",
+              "value": "={{\n  (() => {\n    const meta = $('Get GiveWP Donation Details').item.json.donation.meta;\n\n    const accepted = (meta._give_tributes_accept || '').toLowerCase() === 'yes';\n    const first = meta._give_tributes_ecard_notify_first_name || '';\n    const last = meta._give_tributes_ecard_notify_last_name || '';\n    const email = meta._give_tributes_honoree_ecard_email || '';\n\n    if (accepted) {\n      const name = (first + ' ' + last).trim();\n      // Includes email only if it exists\n      return email ? `${name} <${email}>` : name;\n    } else {\n      return '';\n    }\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "96041bb7-739f-46f8-b7da-d982c68e7dd4",
+              "name": "c_support_for_elephant",
+              "value": "={{ $('Get GiveWP Donation Details').item.json.donation.meta.c_support_for_elephant || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "56c22f4f-ba26-46a4-913f-509570366558",
+              "name": "payment_method",
+              "value": "={{ (() => {\n  const map = {\n    apple_pay: 'Apple Pay',\n    google_pay: 'Google Pay',\n    card: 'Card',\n    card_present: 'Card (contactless)',\n    paypal: 'PayPal',\n    sepa_debit: 'SEPA Direct Debit',\n    bacs_debit: 'Direct debit',\n    acss_debit: 'Direct debit',\n    us_bank_account: 'Direct debit',\n    customer_balance: 'Bank transfer'\n  };\n\n  const gatewayId = $('Switch: Donation Success / Refunded').item.json.donation.gatewayId || '';\n\n  if(gatewayId.startsWith('paypal')) {\n    return \"PayPal\"\n  }\n\n  const pm = $json.payment_method || {};\n  const charges = $json.charges && $json.charges.data && $json.charges.data[0] ? $json.charges.data[0] : {};\n  const pmd = charges.payment_method_details || {};\n  const card = pmd.card || {};\n  const wallet = card.wallet || {};\n  const key = wallet.type || pm.type;\n\n  return map[key] || 'Card';\n})() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3024,
+        16
+      ],
+      "id": "d2e7e817-df31-46b9-9705-768470e1453d",
+      "name": "Prepare Payment Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.gatewayId }}",
+                    "rightValue": "paypal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "118caf9a-8693-48b0-b818-3dd7851191c9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Paypal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "53760864-6b7d-4466-a943-f6d664c30608",
+                    "leftValue": "={{ $('Get GiveWP Donation Details').item.json.donation.gatewayId }}",
+                    "rightValue": "stripe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stripe"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -2032,
+        432
+      ],
+      "id": "fab759c1-4c53-4f58-808a-3b3fb35181ec",
+      "name": "Switch: Stripe or Paypal Refund"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.stripe.com/v1/payment_intents/{{ $('Get GiveWP Donation Details').item.json.donation.gatewayTransactionId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"expand\": [\n    \"payment_method\",\n    \"latest_charge.balance_transaction\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1824,
+        576
+      ],
+      "id": "d243ea17-022f-4b6f-88b5-eb3ce16cb69d",
+      "name": "Stripe: Get Refund Payment Details",
+      "credentials": {
+        "stripeApi": {
+          "id": "V4RQfsSktVus8MpM",
+          "name": "Stripe Test Mode"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "GiveWP Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "pangeatrust.app.n8n.cloud",
+            "user-agent": "WordPress/6.8.3; https://www.pangeatrust.org",
+            "content-length": "394",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "35.214.68.210",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "GB",
+            "cf-ray": "9a58fdf091691fc9-LHR",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "35.214.68.210, 172.64.192.144",
+            "x-forwarded-host": "pangeatrust.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-97-56dd95847b-9j5cq",
+            "x-is-trusted": "yes",
+            "x-real-ip": "35.214.68.210"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": {
+              "id": "donation_status_changed",
+              "type": "donation_event",
+              "description": "Occurs when a donation has the status changed"
+            },
+            "data": {
+              "donation": {
+                "id": 6297,
+                "subscriptionId": 52,
+                "status": "publish",
+                "firstName": "Amer",
+                "lastName": "Test",
+                "email": "itsme+test@wildamer.com",
+                "amount": "40.11",
+                "feeAmountRecovered": "5.11",
+                "currency": "GBP",
+                "type": "subscription",
+                "createdAt": "November 28, 2025 9:55 am"
+              }
+            }
+          },
+          "webhookUrl": "https://pangeatrust.app.n8n.cloud/webhook/givewp-to-beacon",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "GiveWP Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch: Donation vs Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GiveWP Donation Details": {
+      "main": [
+        [
+          {
+            "node": "Switch: Donation Success / Refunded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Find Person by Email": {
+      "main": [
+        [
+          {
+            "node": "If Multiple People?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Multiple People?": {
+      "main": [
+        [
+          {
+            "node": "Stop: More than one Contact matches!",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Person Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Upsert Org": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Person by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Find Gift Aid Declaration": {
+      "main": [
+        [
+          {
+            "node": "Switch: Gift Aid Declaration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gift Aid Date": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Gift Aid Declaration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Create Gift Aid Declaration": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gift Aid ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Person Data": {
+      "main": [
+        [
+          {
+            "node": "If contact found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If contact found": {
+      "main": [
+        [
+          {
+            "node": "Beacon Upsert Person",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Beacon Create Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Create Person": {
+      "main": [
+        [
+          {
+            "node": "Prepare Person ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Upsert Campaign": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Campaign Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Find Campaign Member": {
+      "main": [
+        [
+          {
+            "node": "Switch: Campaign Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Campaign Member": {
+      "main": [
+        [
+          {
+            "node": "Stop: More than one Campaign Membership found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch: Stripe or Paypal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Beacon Create Campaign Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Gift Aid Declaration": {
+      "main": [
+        [
+          {
+            "node": "Stop: More than one Declaration Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Beacon Create Gift Aid Declaration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Gift Aid ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Create Campaign Member": {
+      "main": [
+        [
+          {
+            "node": "Switch: Stripe or Paypal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Subscription": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sub/Payment Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Beacon Upsert Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Person ID": {
+      "main": [
+        [
+          {
+            "node": "If Gift Aid Opted-in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Upsert Subscription": {
+      "main": [
+        [
+          {
+            "node": "Beacon Upsert Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gift Aid ID": {
+      "main": [
+        [
+          {
+            "node": "Beacon Upsert Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sub/Payment Data": {
+      "main": [
+        [
+          {
+            "node": "Beacon Upsert Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Get Payment Details": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payment Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Gift Aid Opted-in": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gift Aid Date",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Gift Aid ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Company not Empty": {
+      "main": [
+        [
+          {
+            "node": "Beacon Upsert Org",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Beacon Find Person by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GiveWP Subscription Details": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Find Subscription": {
+      "main": [
+        [
+          {
+            "node": "Beacon Update Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Donation vs Subscription": {
+      "main": [
+        [
+          {
+            "node": "Switch: Subscription Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get GiveWP Donation Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Subscription Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Get GiveWP Subscription Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get GiveWP Subscription Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Donation Success / Refunded": {
+      "main": [
+        [
+          {
+            "node": "If Company not Empty",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch: Stripe or Paypal Refund",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Find Payment": {
+      "main": [
+        [
+          {
+            "node": "Beacon Update Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Stripe or Paypal": {
+      "main": [
+        [
+          {
+            "node": "Paypal: Get Payment Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stripe: Get Payment Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beacon Upsert Person": {
+      "main": [
+        [
+          {
+            "node": "Prepare Person ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paypal: Get Payment Details": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payment Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payment Fields": {
+      "main": [
+        [
+          {
+            "node": "If Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Stripe or Paypal Refund": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stripe: Get Refund Payment Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Get Refund Payment Details": {
+      "main": [
+        [
+          {
+            "node": "Beacon Find Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9ac0ad34-dd3f-4b53-9e3c-fbee1c263831",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ef7b624a3ea419f520a4dded69b6f6ae3c219cae9320c4425bfd81c17b8bcfc2"
+  },
+  "id": "OuA12D9KyyJqapcH",
+  "tags": []
+}

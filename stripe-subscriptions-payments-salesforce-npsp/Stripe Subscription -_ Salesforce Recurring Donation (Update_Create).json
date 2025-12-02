@@ -1,0 +1,947 @@
+{
+  "name": "Stripe Subscription -> Salesforce Recurring Donation (Update/Create)",
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "customer.subscription.created",
+          "customer.subscription.deleted"
+        ]
+      },
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        -160
+      ],
+      "id": "27632915-5a53-4fe2-9579-2ee54fd06cc3",
+      "name": "Stripe Trigger",
+      "webhookId": "85032155-ab52-44f6-a6b0-ac6406373575",
+      "credentials": {
+        "stripeApi": {
+          "id": "xgFOP8hK7ZrCQY3u",
+          "name": "Stripe Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.stripe.com/v1/subscriptions/{{ $json.data.object.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"expand\": [\n    \"latest_invoice.charge\",\n    \"customer\",\n    \"default_payment_method\",\n    \"latest_invoice.payment_intent.charges.data\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1104,
+        -160
+      ],
+      "id": "90522f27-3ce4-4ee8-adec-967ac38494b8",
+      "name": "Get Stripe Subscription & Customer",
+      "credentials": {
+        "stripeApi": {
+          "id": "xgFOP8hK7ZrCQY3u",
+          "name": "Stripe Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d8977e07-cb44-4ac0-b48c-ed3312254ce7",
+              "leftValue": "={{ $json.recurring_donation_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -160
+      ],
+      "id": "2ebfed00-a5a6-4350-8c33-589a2b9b308e",
+      "name": "If RD exists"
+    },
+    {
+      "parameters": {
+        "resource": "customObject",
+        "customObject": "npe03__Recurring_Donation__c",
+        "customFieldsUi": {
+          "customFieldsValues": [
+            {
+              "fieldId": "npe03__Contact__c",
+              "value": "={{ $('Call Get or Create Contact Based on Email or Alternative Email (Salesforce)').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "npe03__Amount__c",
+              "value": "={{ $('Prepare values').item.json.amount }}"
+            },
+            {
+              "fieldId": "CurrencyIsoCode",
+              "value": "={{ $('Prepare values').item.json.currency }}"
+            },
+            {
+              "fieldId": "npsp__Status__c",
+              "value": "={{ $('Prepare values').item.json.npsp_status }}"
+            },
+            {
+              "fieldId": "npsp__StartDate__c",
+              "value": "={{ $('Prepare values').item.json.start_date }}"
+            },
+            {
+              "fieldId": "npsp__EndDate__c",
+              "value": "={{ $('Prepare values').item.json.end_date }}"
+            },
+            {
+              "fieldId": "npsp__Day_of_Month__c",
+              "value": "={{ $('Prepare values').item.json.day_of_month }}"
+            },
+            {
+              "fieldId": "npsp__InstallmentFrequency__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.plan.interval_count }}"
+            },
+            {
+              "fieldId": "npe03__Installment_Period__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.plan.interval }}ly"
+            },
+            {
+              "fieldId": "npsp__RecurringType__c",
+              "value": "Open"
+            },
+            {
+              "fieldId": "npsp__PaymentMethod__c",
+              "value": "={{ $('Prepare values').item.json.payment_method }}"
+            },
+            {
+              "fieldId": "npe03__Date_Established__c",
+              "value": "={{ $('Prepare values').item.json.start_date }}"
+            },
+            {
+              "fieldId": "Access_Paysuite_URN__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.metadata.access_paysuite_urn }}"
+            },
+            {
+              "fieldId": "Stripe_Subscription_ID__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.id }}"
+            },
+            {
+              "fieldId": "Stripe_Customer_Ref__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.customer.id }}"
+            },
+            {
+              "fieldId": "Stripe_Mandate_ID__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.latest_invoice.payment_intent.charges.data[0].payment_method_details.bacs_debit.mandate }}"
+            },
+            {
+              "fieldId": "npsp__ACH_Last_4__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.default_payment_method.bacs_debit.last4 }}"
+            },
+            {
+              "fieldId": "Interface_Platform__c",
+              "value": "Stripe"
+            },
+            {
+              "fieldId": "Stripe_Subscription__c",
+              "value": "true"
+            },
+            {
+              "fieldId": "Stripe_Statement_Descriptor__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.latest_invoice.statement_descriptor }}"
+            },
+            {
+              "fieldId": "Name",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.latest_invoice.lines.data[0].description }} - Stripe"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -80
+      ],
+      "id": "fa7e1c19-1e9c-4d5e-8a5a-658cf0f0e3eb",
+      "name": "Create RD",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "vYUVhtWVblv4vfIl",
+          "name": "Salesforce Production Integration User (n8n_user)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "customObject",
+        "operation": "update",
+        "customObject": "npe03__Recurring_Donation__c",
+        "recordId": "={{ $json.recurring_donation_id }}",
+        "customFieldsUi": {
+          "customFieldsValues": [
+            {
+              "fieldId": "npe03__Amount__c",
+              "value": "={{ $('Prepare values').item.json.amount }}"
+            },
+            {
+              "fieldId": "CurrencyIsoCode",
+              "value": "={{ $('Prepare values').item.json.currency }}"
+            },
+            {
+              "fieldId": "npsp__Status__c",
+              "value": "={{ $('Prepare values').item.json.npsp_status }}"
+            },
+            {
+              "fieldId": "npsp__EndDate__c",
+              "value": "={{ $('Prepare values').item.json.end_date }}"
+            },
+            {
+              "fieldId": "npsp__Day_of_Month__c",
+              "value": "={{ $('Prepare values').item.json.day_of_month }}"
+            },
+            {
+              "fieldId": "npsp__InstallmentFrequency__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.plan.interval_count }}"
+            },
+            {
+              "fieldId": "npe03__Installment_Period__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.plan.interval }}ly"
+            },
+            {
+              "fieldId": "npsp__PaymentMethod__c",
+              "value": "={{ $('Prepare values').item.json.payment_method }}"
+            },
+            {
+              "fieldId": "npe03__Date_Established__c",
+              "value": "={{ $('Prepare values').item.json.start_date }}"
+            },
+            {
+              "fieldId": "Access_Paysuite_URN__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.metadata.access_paysuite_urn }}"
+            },
+            {
+              "fieldId": "Stripe_Subscription_ID__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.id }}"
+            },
+            {
+              "fieldId": "Stripe_Customer_Ref__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.customer.id }}"
+            },
+            {
+              "fieldId": "npsp__ACH_Last_4__c",
+              "value": "={{ $('Get Stripe Subscription & Customer').item.json.default_payment_method.bacs_debit.last4 }}"
+            },
+            {
+              "fieldId": "Interface_Platform__c",
+              "value": "Stripe"
+            },
+            {
+              "fieldId": "Stripe_Subscription__c",
+              "value": "true"
+            }
+          ]
+        },
+        "updateFields": {}
+      },
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -256
+      ],
+      "id": "ff196ed8-f14d-48ba-8aef-ce4ff377038a",
+      "name": "Update RD",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "vYUVhtWVblv4vfIl",
+          "name": "Salesforce Production Integration User (n8n_user)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "jm7C2ynXNWdb6qEd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/jm7C2ynXNWdb6qEd",
+          "cachedResultName": "Subflow: Get or Create Contact Based on Email (Salesforce)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_email": "={{ $('Get Stripe Subscription & Customer').item.json.customer.email }}",
+            "customer_address_city": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.city }}",
+            "customer_address_postal_code": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.postal_code }}",
+            "customer_address_state": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.state }}",
+            "customer_address_line1": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.line1 }}",
+            "customer_address_line2": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.line2 }}",
+            "customer_phone": "={{ $('Get Stripe Subscription & Customer').item.json.customer.phone }}",
+            "customer_address_country": "={{ $('Get Stripe Subscription & Customer').item.json.customer.address.country }}",
+            "last_name": "={{ $json.last_name }}",
+            "first_name": "={{ $json.first_name }}"
+          },
+          "matchingColumns": [
+            "customer_email",
+            "lastName",
+            "firstName",
+            "customer_address_city",
+            "customer_address_postal_code",
+            "customer_address_state",
+            "customer_address_line1",
+            "customer_address_line2",
+            "customer_phone"
+          ],
+          "schema": [
+            {
+              "id": "customer_email",
+              "displayName": "customer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "customer_address_city",
+              "displayName": "customer_address_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_address_postal_code",
+              "displayName": "customer_address_postal_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_address_state",
+              "displayName": "customer_address_state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_address_line1",
+              "displayName": "customer_address_line1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_address_line2",
+              "displayName": "customer_address_line2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_phone",
+              "displayName": "customer_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_address_country",
+              "displayName": "customer_address_country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        -160
+      ],
+      "name": "Call Get or Create Contact Based on Email or Alternative Email (Salesforce)",
+      "id": "124e9627-9e29-41cf-aa5b-ec2e24a068e5"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FndFdWLb5zwaFyTr",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/FndFdWLb5zwaFyTr",
+          "cachedResultName": "Subflow: Salesforce find existing recurring donation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "access_paysuite_urn": "={{ $('Get Stripe Subscription & Customer').item.json.metadata.access_paysuite_urn }}",
+            "stripe_subscription_id": "={{ $('Get Stripe Subscription & Customer').item.json.id }}",
+            "stripe_customer_id": "={{ $('Get Stripe Subscription & Customer').item.json.customer.id }}",
+            "currency_iso_code": "={{ $('Prepare values').item.json.currency }}",
+            "amount": "={{ $('Prepare values').item.json.amount }}"
+          },
+          "matchingColumns": [
+            "customer_metadata_old_id",
+            "id",
+            "ContactId"
+          ],
+          "schema": [
+            {
+              "id": "access_paysuite_urn",
+              "displayName": "access_paysuite_urn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stripe_subscription_id",
+              "displayName": "stripe_subscription_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "stripe_customer_id",
+              "displayName": "stripe_customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "currency_iso_code",
+              "displayName": "currency_iso_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        -160
+      ],
+      "name": "Call Subflow: Salesforce find existing recurring donation",
+      "id": "3c97b763-bb4f-4b38-b586-4904f79ffda5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-111111111111",
+              "name": "amount",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const price = subscription?.items?.data?.[0]?.price ?? subscription?.plan ?? {};\n    const unitAmountMinor = price?.unit_amount ?? price?.amount;\n\n    return unitAmountMinor != null ? unitAmountMinor / 100 : null;\n  })()\n}}",
+              "type": "number"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-222222222222",
+              "name": "currency",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const price = subscription?.items?.data?.[0]?.price ?? subscription?.plan ?? {};\n    const rawCurrency = subscription?.currency ?? price?.currency ?? '';\n    const upperCurrency = rawCurrency.toUpperCase();\n\n    return upperCurrency || null;\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-333333333333",
+              "name": "day_of_month",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const billingCycleAnchorSeconds = subscription?.billing_cycle_anchor;\n    if (!billingCycleAnchorSeconds) return null;\n\n    return DateTime.fromMillis(billingCycleAnchorSeconds * 1000).day;\n  })()\n}}",
+              "type": "number"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-555555555555",
+              "name": "npsp_status",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const stripeStatus = subscription?.status;\n    const statusMap = {\n      active: 'Active',\n      trialing: 'Active',\n      past_due: 'Lapsed',\n      unpaid: 'Lapsed',\n      paused: 'Lapsed',\n      canceled: 'Closed',\n    };\n\n    return statusMap[stripeStatus] ?? 'Active';\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-666666666666",
+              "name": "start_date",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const startDateSeconds = subscription?.start_date;\n    if (!startDateSeconds) return null;\n\n    return DateTime.fromMillis(startDateSeconds * 1000).toISODate();\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-777777777777",
+              "name": "end_date",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n    const canceledAtSeconds = subscription?.canceled_at;\n    if (!canceledAtSeconds) return null;\n\n    return DateTime.fromMillis(canceledAtSeconds * 1000).toISODate();\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-888888888888",
+              "name": "first_name",
+              "value": "={{\n  (() => {\n    const customerName = $json?.customer?.name;\n    if (!customerName) return null;\n\n    const parts = String(customerName).trim().split(/\\s+/);\n    if (parts.length === 1) return parts[0];\n\n    parts.pop();\n    return parts.join(' ');\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-999999999999",
+              "name": "last_name",
+              "value": "={{\n  (() => {\n    const customerName = $json?.customer?.name;\n    if (!customerName) return 'Subscriber';\n\n    const parts = String(customerName).trim().split(/\\s+/);\n    if (parts.length === 1) return 'Subscriber';\n\n    return parts[parts.length - 1];\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c1a3a0f4-5c0a-4f7d-a0c2-aaaaaaaaaaaa",
+              "name": "payment_method",
+              "value": "={{\n  (() => {\n    const subscription = $json;\n\n    const paymentMethodType =\n      subscription?.default_payment_method?.type\n      ?? subscription?.latest_invoice?.payment_intent?.charges?.data?.[0]?.payment_method_details?.type\n      ?? subscription?.latest_invoice?.payment_intent?.payment_method_types?.[0]\n      ?? null;\n\n    const paymentMethodMap = {\n      card: 'Credit / Debit Card',\n      bacs_debit: 'Direct Debit',\n      paypal: 'PayPal',\n    };\n\n    if (!paymentMethodType) return 'Other';\n\n    return paymentMethodMap[paymentMethodType] ?? 'Other';\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        -160
+      ],
+      "id": "94ec8868-eb01-4257-a7a3-310e3253c8ae",
+      "name": "Prepare values"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Subscription with no old_id!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        256,
+        112
+      ],
+      "id": "fbbbba39-9932-4e4c-b9ad-d271567c48a1",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c717e212-95b1-4f86-8138-cf7a3b6e8cbb",
+              "leftValue": "={{ $('Get Stripe Subscription & Customer').item.json.metadata.access_paysuite_urn }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -64
+      ],
+      "id": "ec6ea114-0688-46b1-a64e-4f6590d3bdf4",
+      "name": "If access_paysuite_urn is set"
+    }
+  ],
+  "pinData": {
+    "Stripe Trigger": [
+      {
+        "json": {
+          "id": "evt_1SXyd6C1p3mfV07RRzJy6PP4",
+          "object": "event",
+          "api_version": "2019-03-14",
+          "created": 1764224668,
+          "data": {
+            "object": {
+              "id": "sub_1SXycxC1p3mfV07RpEaAVe0D",
+              "object": "subscription",
+              "application": null,
+              "application_fee_percent": null,
+              "automatic_tax": {
+                "disabled_reason": null,
+                "enabled": false,
+                "liability": null
+              },
+              "billing": "charge_automatically",
+              "billing_cycle_anchor": 1764224664,
+              "billing_cycle_anchor_config": null,
+              "billing_mode": {
+                "flexible": null,
+                "type": "classic"
+              },
+              "billing_thresholds": null,
+              "cancel_at": null,
+              "cancel_at_period_end": false,
+              "canceled_at": null,
+              "cancellation_details": {
+                "comment": null,
+                "feedback": null,
+                "reason": null
+              },
+              "collection_method": "charge_automatically",
+              "created": 1764224664,
+              "currency": "gbp",
+              "current_period_end": 1766816664,
+              "current_period_start": 1764224664,
+              "customer": "cus_TUyanG6oZj2DwE",
+              "days_until_due": null,
+              "default_payment_method": "pm_1SXycuC1p3mfV07Raj9oBdbr",
+              "default_source": null,
+              "default_tax_rates": [],
+              "description": null,
+              "discount": null,
+              "discounts": [],
+              "ended_at": null,
+              "invoice_customer_balance_settings": {
+                "consume_applied_balance_on_void": true
+              },
+              "invoice_settings": {
+                "account_tax_ids": null,
+                "issuer": {
+                  "type": "self"
+                }
+              },
+              "items": {
+                "object": "list",
+                "data": [
+                  {
+                    "id": "si_TUya4JxHj0w59C",
+                    "object": "subscription_item",
+                    "billing_thresholds": null,
+                    "created": 1764224665,
+                    "current_period_end": 1766816664,
+                    "current_period_start": 1764224664,
+                    "discounts": [],
+                    "metadata": {},
+                    "plan": {
+                      "id": "price_1PcsBwC1p3mfV07R7GVKM6qz",
+                      "object": "plan",
+                      "active": true,
+                      "aggregate_usage": null,
+                      "amount": 300,
+                      "amount_decimal": "300",
+                      "billing_scheme": "per_unit",
+                      "created": 1721062560,
+                      "currency": "gbp",
+                      "interval": "month",
+                      "interval_count": 1,
+                      "livemode": true,
+                      "metadata": {},
+                      "meter": null,
+                      "nickname": null,
+                      "product": "prod_QTprC3E3SijGIL",
+                      "tiers": null,
+                      "tiers_mode": null,
+                      "transform_usage": null,
+                      "trial_period_days": null,
+                      "usage_type": "licensed"
+                    },
+                    "price": {
+                      "id": "price_1PcsBwC1p3mfV07R7GVKM6qz",
+                      "object": "price",
+                      "active": true,
+                      "billing_scheme": "per_unit",
+                      "created": 1721062560,
+                      "currency": "gbp",
+                      "custom_unit_amount": null,
+                      "livemode": true,
+                      "lookup_key": null,
+                      "metadata": {},
+                      "nickname": null,
+                      "product": "prod_QTprC3E3SijGIL",
+                      "recurring": {
+                        "aggregate_usage": null,
+                        "interval": "month",
+                        "interval_count": 1,
+                        "meter": null,
+                        "trial_period_days": null,
+                        "usage_type": "licensed"
+                      },
+                      "tax_behavior": "unspecified",
+                      "tiers_mode": null,
+                      "transform_quantity": null,
+                      "type": "recurring",
+                      "unit_amount": 300,
+                      "unit_amount_decimal": "300"
+                    },
+                    "quantity": 1,
+                    "subscription": "sub_1SXycxC1p3mfV07RpEaAVe0D",
+                    "tax_rates": []
+                  }
+                ],
+                "has_more": false,
+                "total_count": 1,
+                "url": "/v1/subscription_items?subscription=sub_1SXycxC1p3mfV07RpEaAVe0D"
+              },
+              "latest_invoice": "in_1SXycvC1p3mfV07RxAjeh6YL",
+              "livemode": true,
+              "metadata": {},
+              "next_pending_invoice_item_invoice": null,
+              "on_behalf_of": null,
+              "pause_collection": null,
+              "payment_settings": {
+                "payment_method_options": {
+                  "acss_debit": null,
+                  "bancontact": null,
+                  "card": {
+                    "network": null,
+                    "request_three_d_secure": "automatic"
+                  },
+                  "customer_balance": null,
+                  "konbini": null,
+                  "sepa_debit": null,
+                  "us_bank_account": null
+                },
+                "payment_method_types": null,
+                "save_default_payment_method": "off"
+              },
+              "pending_invoice_item_interval": null,
+              "pending_setup_intent": null,
+              "pending_update": null,
+              "plan": {
+                "id": "price_1PcsBwC1p3mfV07R7GVKM6qz",
+                "object": "plan",
+                "active": true,
+                "aggregate_usage": null,
+                "amount": 300,
+                "amount_decimal": "300",
+                "billing_scheme": "per_unit",
+                "created": 1721062560,
+                "currency": "gbp",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": true,
+                "metadata": {},
+                "meter": null,
+                "nickname": null,
+                "product": "prod_QTprC3E3SijGIL",
+                "tiers": null,
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": null,
+                "usage_type": "licensed"
+              },
+              "quantity": 1,
+              "schedule": null,
+              "start": 1764224664,
+              "start_date": 1764224664,
+              "status": "active",
+              "tax_percent": null,
+              "test_clock": null,
+              "transfer_data": null,
+              "trial_end": null,
+              "trial_settings": {
+                "end_behavior": {
+                  "missing_payment_method": "create_invoice"
+                }
+              },
+              "trial_start": null
+            }
+          },
+          "livemode": true,
+          "pending_webhooks": 3,
+          "request": {
+            "id": null,
+            "idempotency_key": "ede1538a-3dbe-4447-9aa8-2441a5a062db"
+          },
+          "type": "customer.subscription.created"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Stripe Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Stripe Subscription & Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stripe Subscription & Customer": {
+      "main": [
+        [
+          {
+            "node": "Prepare values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If RD exists": {
+      "main": [
+        [
+          {
+            "node": "Update RD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If access_paysuite_urn is set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Get or Create Contact Based on Email or Alternative Email (Salesforce)": {
+      "main": [
+        [
+          {
+            "node": "Call Subflow: Salesforce find existing recurring donation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Subflow: Salesforce find existing recurring donation": {
+      "main": [
+        [
+          {
+            "node": "If RD exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare values": {
+      "main": [
+        [
+          {
+            "node": "Call Get or Create Contact Based on Email or Alternative Email (Salesforce)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If access_paysuite_urn is set": {
+      "main": [
+        [
+          {
+            "node": "Create RD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "BMQVRuI2h2GyQk6W"
+  },
+  "versionId": "62ad91a2-60d4-48ad-a53f-d2e73b2752e5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "25a37804ede9d68f787ab090dd35e4c7cce064c70e0bdff01da9a7fb71cba76b"
+  },
+  "id": "tMSl7dyZdzjRg9AF",
+  "tags": []
+}

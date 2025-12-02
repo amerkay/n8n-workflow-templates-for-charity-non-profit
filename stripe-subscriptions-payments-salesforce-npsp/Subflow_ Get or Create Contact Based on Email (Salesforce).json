@@ -1,0 +1,247 @@
+{
+  "name": "Subflow: Get or Create Contact Based on Email (Salesforce)",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "search",
+        "query": "=SELECT Id, Email\nFROM Contact\nWHERE \n  (Email = '{{ $('Start').item.json.customer_email }}' AND Email != '')\n  OR (npe01__AlternateEmail__c = '{{ $('Start').item.json.customer_email }}' AND npe01__AlternateEmail__c != '')\nLIMIT 1"
+      },
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        16
+      ],
+      "id": "7b127b71-b5a2-439a-baa2-e03540276a47",
+      "name": "Perform a query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "vYUVhtWVblv4vfIl",
+          "name": "Salesforce Production Integration User (n8n_user)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8258451e-2c52-4eaa-aa72-9597a0dbb60f",
+              "leftValue": "={{ $json.Id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        16
+      ],
+      "id": "bfe48ed2-82a9-4a3a-8785-f2720c5fa1b4",
+      "name": "If Contact Exists"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "lastname": "={{ $('Start').item.json.last_name }}",
+        "additionalFields": {
+          "email": "={{ $('Start').item.json.customer_email }}",
+          "firstName": "={{ $('Start').item.json.first_name }}",
+          "mailingCity": "={{ $('Start').item.json.customer_address_city }}",
+          "mailingCountry": "={{ $('Start').item.json.customer_address_country }}",
+          "mailingPostalCode": "={{ $('Start').item.json.customer_address_postal_code }}",
+          "mailingState": "={{ $('Start').item.json.customer_address_state }}",
+          "mailingStreet": "={{ $('Start').item.json.customer_address_line1 }}, {{ $('Start').item.json.customer_address_line2 }}",
+          "phone": "={{ $('Start').item.json.customer_phone }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        96
+      ],
+      "id": "fa7fa664-7aca-42ed-a461-4689d983e8ad",
+      "name": "Create a contact",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "vYUVhtWVblv4vfIl",
+          "name": "Salesforce Production Integration User (n8n_user)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a61681ae-51a8-485f-b418-adbd4e918c00",
+              "name": "contact_id",
+              "value": "={{ $json.Id || $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b9d09111-a656-464f-b12c-d91245613d56",
+      "name": "Return"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "customer_email"
+            },
+            {
+              "name": "last_name"
+            },
+            {
+              "name": "first_name"
+            },
+            {
+              "name": "customer_address_city",
+              "type": "any"
+            },
+            {
+              "name": "customer_address_postal_code",
+              "type": "any"
+            },
+            {
+              "name": "customer_address_state",
+              "type": "any"
+            },
+            {
+              "name": "customer_address_line1",
+              "type": "any"
+            },
+            {
+              "name": "customer_address_line2",
+              "type": "any"
+            },
+            {
+              "name": "customer_phone",
+              "type": "any"
+            },
+            {
+              "name": "customer_address_country"
+            }
+          ]
+        }
+      },
+      "id": "05508076-7f6a-45a4-807d-1ff88cc95701",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -912,
+        16
+      ]
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "customer_email": "banana1036@definitely-not-a-monkey.com",
+          "last_name": "36",
+          "first_name": "Whereare MyBananas",
+          "customer_address_city": "London",
+          "customer_address_postal_code": "NE1 4WA",
+          "customer_address_state": "",
+          "customer_address_line1": "42 Wallaby Way",
+          "customer_address_line2": "The Secret Batcave",
+          "customer_phone": "447700900123",
+          "customer_address_country": "GB"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Perform a query": {
+      "main": [
+        [
+          {
+            "node": "If Contact Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Contact Exists": {
+      "main": [
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a contact": {
+      "main": [
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Perform a query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "63db1dd4-64bc-4919-a4fb-e5b3a6e795e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "25a37804ede9d68f787ab090dd35e4c7cce064c70e0bdff01da9a7fb71cba76b"
+  },
+  "id": "jm7C2ynXNWdb6qEd",
+  "tags": []
+}

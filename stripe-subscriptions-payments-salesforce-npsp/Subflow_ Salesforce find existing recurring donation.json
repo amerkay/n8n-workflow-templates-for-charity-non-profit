@@ -1,0 +1,298 @@
+{
+  "name": "Subflow: Salesforce find existing recurring donation",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "search",
+        "query": "=SELECT Id, Stripe_Subscription_ID__c, Access_Paysuite_URN__c, npe03__Amount__c, Name, npe03__Contact__c\nFROM npe03__Recurring_Donation__c\nWHERE \nStripe_Customer_Ref__c = '{{ $json.stripe_customer_id }}'\nAND Stripe_Customer_Ref__c NOT IN ('', NULL) \nAND npe03__Amount__c = {{ $json.amount }}\nAND CurrencyIsoCode = '{{ $json.currency_iso_code }}'\n\nAND (\n  (\n    Access_Paysuite_URN__c = '{{ $json.access_paysuite_urn\n }}' \n    AND Access_Paysuite_URN__c NOT IN ('', NULL) \n  ) \n  OR \n  (\n    Stripe_Subscription_ID__c = '{{ $json.stripe_subscription_id\n }}' \n    AND Stripe_Subscription_ID__c NOT IN ('', NULL) \n  )\n)\nLIMIT 5"
+      },
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        192
+      ],
+      "id": "b0d95121-d75d-433b-8651-22e1a0239b82",
+      "name": "Find existing recurring donation",
+      "alwaysOutputData": true,
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "vYUVhtWVblv4vfIl",
+          "name": "Salesforce Production Integration User (n8n_user)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28067c9d-c460-48cf-b477-842cc991a420",
+              "name": "recurring_donation_id",
+              "value": "={{ $json.Id }}",
+              "type": "string"
+            },
+            {
+              "id": "bbb0c6a6-308f-4dd9-8a14-5206be8ad8a1",
+              "name": "recurring_donation_amount",
+              "value": "={{ $json.npe03__Amount__c }}",
+              "type": "number"
+            },
+            {
+              "id": "86d051b8-0ce7-4aaf-91fd-b9193f995931",
+              "name": "access_paysuite_urn",
+              "value": "={{ $json.Access_Paysuite_URN__c }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        192
+      ],
+      "id": "4f896348-ba4b-4ceb-93a9-a760fc064828",
+      "name": "Return"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "access_paysuite_urn",
+              "type": "any"
+            },
+            {
+              "name": "stripe_subscription_id"
+            },
+            {
+              "name": "stripe_customer_id"
+            },
+            {
+              "name": "currency_iso_code"
+            },
+            {
+              "name": "amount",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "446473d7-d4a4-497a-b029-011e721c48aa",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -592,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Find existing recurring donation').all().filter(item => Object.keys(item.json || {}).length > 0).length }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "ea8e28ff-c2cd-4482-8e6a-a2f033bd8c14"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "not found"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6dbf1165-b62f-4db5-b172-6c6a836b5f58",
+                    "leftValue": "={{ $('Find existing recurring donation').all().filter(item => Object.keys(item.json || {}).length > 0).length }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "1 found"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "05c65866-573e-46f5-bc60-cbafd8724c59",
+                    "leftValue": "={{ $('Find existing recurring donation').all().filter(item => Object.keys(item.json || {}).length > 0).length }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "more than 1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "68d7d00e-745b-40a0-921e-5e5939799607",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "errorMessage": "No Recurring Donation found!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -144
+      ],
+      "id": "b876f80d-b888-4590-82b2-9df531995513",
+      "name": "Stop and Error: No RD Found"
+    },
+    {
+      "parameters": {
+        "errorMessage": "More than 1 Recurring Donation found!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        0,
+        368
+      ],
+      "id": "3499172c-8fdc-49fd-8c6a-39fe927962c2",
+      "name": "Stop and Error: More than 1 RD found"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        16
+      ],
+      "id": "e4fb2a91-39d3-451a-82e8-2511de80b1c5",
+      "name": "Return Empty"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "access_paysuite_urn": "19678",
+          "stripe_subscription_id": "sub_1SXf9ZC1p3mfV07R9yMoKksH",
+          "stripe_customer_id": "cus_TUeStFzjAHX15f",
+          "currency_iso_code": "gbp",
+          "amount": 42.42
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Find existing recurring donation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find existing recurring donation": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error: No RD Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error: More than 1 RD found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "114268f9-19b4-4955-a1c6-5701a36c2e33",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "25a37804ede9d68f787ab090dd35e4c7cce064c70e0bdff01da9a7fb71cba76b"
+  },
+  "id": "FndFdWLb5zwaFyTr",
+  "tags": []
+}
