@@ -160,7 +160,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        576,
+        992,
         -256
       ],
       "id": "193b4fdf-7be6-4e3a-8a66-b616730e118f",
@@ -179,7 +179,7 @@
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
       "position": [
-        1088,
+        1504,
         -416
       ],
       "id": "bbfef84a-a32b-44c7-b30e-b06a93cab70f",
@@ -199,7 +199,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1088,
+        1504,
         -256
       ],
       "id": "2296c0ec-7f25-4695-9767-11065cf24635",
@@ -228,26 +228,11 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        384,
+        800,
         -256
       ],
       "id": "d83f368c-d685-4747-95c0-40c5b4793a1f",
       "name": "Prepare Gift Aid Date"
-    },
-    {
-      "parameters": {
-        "mode": "raw",
-        "jsonOutput": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n\n  const obj = {};\n\n  //\n  // ORGANIZATION (optional)\n  //\n  const orgId = $('Beacon Upsert Org').isExecuted ? $('Beacon Upsert Org').entity.id : \"\";\n  if (orgId) {\n    obj.organization = [orgId];\n  }\n\n  //\n  // NAME (always present)\n  //\n  obj.name = {\n    first: donation.donor.firstName,\n    last: donation.donor.lastName,\n    prefix: (donation.donor.prefix || \"\").replace(\".\", \"\")\n  };\n\n  //\n  // EMAILS (always present)\n  //\n  const primaryEmail = donation.donor.email || donation.email;\n  const additionalEmails = donation.donor.additionalEmails || [];\n\n  const emailArray = [{ email: primaryEmail, is_primary: true }];\n\n  additionalEmails.forEach(email => {\n    if (email && email !== primaryEmail) {\n      emailArray.push({ email, is_primary: false });\n    }\n  });\n\n  obj.emails = emailArray;\n\n  //\n  // PHONE NUMBERS (optional)\n  //\n  if (donation.donor.phone) {\n    obj.phone_numbers = [{ number: donation.donor.phone, is_primary: true }];\n  }\n\n  //\n  // TYPE (always present)\n  //\n  obj.type = [\"Donor\"];\n\n  //\n  // ADDRESS (optional)\n  //\n  const meta = (donation.donor && donation.donor.meta) || {};\n  const billing = donation.billingAddress || null;\n\n  const buildGiftAidAddress = () => {\n    const hasAny =\n      meta._give_gift_aid_card_address ||\n      meta._give_gift_aid_card_zip ||\n      meta._give_gift_aid_country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: meta._give_gift_aid_card_address || null,\n      address_line_two: null,\n      city: null,\n      region: null,\n      postal_code: meta._give_gift_aid_card_zip || null,\n      country: meta._give_gift_aid_country || null\n    };\n  };\n\n  const buildBillingAddress = () => {\n    if (!billing) return null;\n\n    const hasAny =\n      billing.address1 ||\n      billing.address2 ||\n      billing.city ||\n      billing.state ||\n      billing.zip ||\n      billing.country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: billing.address1 || null,\n      address_line_two: billing.address2 || null,\n      city: billing.city || null,\n      region: billing.state || null,\n      postal_code: billing.zip || null,\n      country: billing.country || null\n    };\n  };\n\n  const addr = buildGiftAidAddress() || buildBillingAddress();\n  if (addr) {\n    obj.address = [addr];\n  }\n\n  //\n  // Email consent (MailChimp)\n  //\n  const isMailchimpMeta = !!donation.meta._give_mc_donation_optin_status;\n  obj.contact_preferences = [\"Email\"]\n\n  //\n  // NOTES (always present)\n  //\n  let notes = \"\";\n  notes += `=== Donation #${donation.id} ===\\n`;\n  notes += `Date: ${donation.createdAt}\\n`;\n  notes += `Amount: ${donation.amount.formatted} ${donation.amount.currency}\\n`;\n  notes += `Fee Recovered: ${donation.feeAmountRecovered.formatted} ${donation.feeAmountRecovered.currency}\\n`;\n  notes += `Type: ${donation.type}\\n`;\n  notes += `Gateway: ${donation.gatewayId}\\n`;\n  notes += `Form: ${donation.formTitle} (#${donation.formId})\\n`;\n  notes += `Campaign: ${donation.campaign?.title || \"N/A\"}\\n`;\n\n  if (donation.type === \"subscription\") {\n    notes += `\\n--- Subscription #${donation.subscriptionId} ---\\n`;\n    notes += `Status: ${donation.subscription.status}\\n`;\n    notes += `Frequency: Every ${donation.subscription.frequency} ${donation.subscription.period}(s)\\n`;\n    notes += `Next Renewal: ${donation.subscription.renewsAt}\\n`;\n    notes += `Gateway Subscription ID: ${donation.subscription.gatewaySubscriptionId}\\n`;\n  }\n\n  if (meta) {\n    if (meta._give_gift_aid_opt_in_date) {\n      notes += `\\nGift Aid Opted In: ${meta._give_gift_aid_opt_in_date}\\n`;\n    }\n    if (meta._give_stripe_customer_id_test) {\n      notes += `Stripe Customer ID (Test): ${meta._give_stripe_customer_id_test}\\n`;\n    }\n  }\n\n  notes += `\\nLast Updated: ${new Date().toISOString()}`;\n\n  obj.c_give_wp_notes = notes;\n\n  //\n  // PRIZE DRAW OPT-IN (optional)\n  //\n  const optIn = donation.meta.c_opt_in_quarterly_prize_draw;\n  if (optIn) {\n    obj.c_opt_in_quarterly_prize_draw = true;\n  }\n\n  //\n  // FINAL OUTPUT — ALWAYS VALID JSON\n  //\n  return JSON.stringify(obj, null, 2);\n})()\n}}\n",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -720,
-        0
-      ],
-      "id": "f8d3291c-24b3-48f6-83a1-de023fbf442b",
-      "name": "Prepare Person Data"
     },
     {
       "parameters": {
@@ -276,7 +261,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -496,
+        -64,
         0
       ],
       "id": "15b84ca3-1f49-4640-8f8b-3778128b1c60",
@@ -290,13 +275,13 @@
         "genericAuthType": "httpCustomAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $('Prepare Person Data').item.json }}",
+        "jsonBody": "={{ JSON.stringify($('Remove empty values').item.json); }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -272,
+        144,
         128
       ],
       "id": "2a9eafe5-2a3a-41a2-b33f-4b5b9d79e4ef",
@@ -322,7 +307,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1600,
+        2016,
         16
       ],
       "id": "c76b309a-df35-4d7c-880e-764d870e1d26",
@@ -348,7 +333,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2304,
+        2720,
         192
       ],
       "id": "8cd22bf9-4c50-4422-bc1f-8f5da1726614",
@@ -374,7 +359,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1824,
+        2240,
         16
       ],
       "id": "df94448a-604f-491f-9b23-17f15d1e65c3",
@@ -393,7 +378,7 @@
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
       "position": [
-        2304,
+        2720,
         -224
       ],
       "id": "3cbaa5c5-4fc5-4f80-9842-b8bbf77bc6c6",
@@ -482,7 +467,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        2048,
+        2464,
         0
       ],
       "id": "73ad024d-03ee-4997-acca-6697caf5fc37",
@@ -571,7 +556,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        784,
+        1200,
         -272
       ],
       "id": "1b016fe0-afe8-4e43-be41-cb19162f15dc",
@@ -604,7 +589,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3248,
+        3664,
         16
       ],
       "id": "907b1af2-127b-4c60-96b8-c768ee755ce7",
@@ -624,7 +609,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3664,
+        4080,
         -208
       ],
       "id": "9a6309fc-63ae-4eaf-b93f-dbdfbd483d55",
@@ -645,7 +630,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -48,
+        368,
         0
       ],
       "id": "56a6968d-9c07-4dde-b958-5f16143f913a",
@@ -668,7 +653,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1296,
+        1712,
         16
       ],
       "id": "eb87765f-23c7-4bb5-8e9a-15040c12d1e4",
@@ -697,7 +682,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3456,
+        3872,
         -208
       ],
       "id": "9a7d945d-ec7c-4374-ba27-bc9ce7d20cd2",
@@ -716,7 +701,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2784,
+        3200,
         176
       ],
       "id": "43745c13-a283-4a85-abe6-ba516a99e130",
@@ -742,7 +727,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3872,
+        4288,
         32
       ],
       "id": "cbe4ad61-5b3f-4be2-8781-c61f8a74297a",
@@ -782,7 +767,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        160,
+        576,
         0
       ],
       "id": "4049b6c2-c4d6-4b2e-8c4d-4f9f79a36264",
@@ -1067,6 +1052,31 @@
                 },
                 "conditions": [
                   {
+                    "id": "9fc9c617-18c1-4797-96fa-9e5b1fc57cf6",
+                    "leftValue": "={{ $('GiveWP Webhook').item.json.body.data.donation.type }}",
+                    "rightValue": "renewal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Donation Renewal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
                     "id": "d799d26b-6e3d-404f-8e90-678f167bbbc0",
                     "leftValue": "={{ $('GiveWP Webhook').item.json.body.data.donation.status }}",
                     "rightValue": "refunded",
@@ -1206,7 +1216,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        2560,
+        2976,
         16
       ],
       "id": "6570d115-6666-4514-98da-558cf98dc7da",
@@ -1220,13 +1230,13 @@
         "genericAuthType": "httpCustomAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"primary_field_key\": \"emails\",\n  \"entity\": {{ JSON.stringify($('Prepare Person Data').item.json); }}\n}",
+        "jsonBody": "={\n  \"primary_field_key\": \"emails\",\n  \"entity\": {{ JSON.stringify($('Remove empty values').item.json); }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -272,
+        144,
         -144
       ],
       "id": "09c925e6-7006-4d73-86c4-5762d90069f6",
@@ -1248,7 +1258,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2784,
+        3200,
         -144
       ],
       "id": "f789c866-08e7-408d-a966-571728097980",
@@ -1279,7 +1289,7 @@
             {
               "id": "d4a691f2-af1f-409d-87b8-c7f163689cb4",
               "name": "covered_fee_amount",
-              "value": "={\n    \"value\": {{ $('Get GiveWP Donation Details').item.json.donation.feeAmountRecovered.formatted }},\n    \"currency\": \"{{ $('Get GiveWP Donation Details').item.json.donation.feeAmountRecovered.currency }}\"\n}",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  const formatted = donation?.feeAmountRecovered?.formatted;\n\n  if (!formatted) {\n    return JSON.stringify({});\n  }\n\n  return JSON.stringify({\n    value: formatted,\n    currency: donation?.feeAmountRecovered?.currency || 'GBP'\n  });\n})()\n}}\n",
               "type": "object"
             },
             {
@@ -1331,7 +1341,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3024,
+        3440,
         16
       ],
       "id": "d2e7e817-df31-46b9-9705-768470e1453d",
@@ -1426,6 +1436,102 @@
           "name": "Stripe Test Mode"
         }
       }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "339e2bba-0c29-4521-85e4-9bbb523099ec",
+              "name": "organization",
+              "value": "={{ \n  $('Beacon Upsert Org').isExecuted \n    ? [$('Beacon Upsert Org').entity.id] \n    : [] \n}}",
+              "type": "array"
+            },
+            {
+              "id": "2e7b4634-0dbf-4827-b90d-3428242df6f1",
+              "name": "name.first",
+              "value": "={{ $('Get GiveWP Donation Details').item.json.donation.donor.firstName }}",
+              "type": "string"
+            },
+            {
+              "id": "57ca5bf3-0e44-4e0d-a679-68a814175679",
+              "name": "name.last",
+              "value": "={{ $('Get GiveWP Donation Details').item.json.donation.donor.lastName }}",
+              "type": "string"
+            },
+            {
+              "id": "cb1f41da-ff12-4632-9f8a-bc6f33ce4daf",
+              "name": "name.prefix",
+              "value": "={{\n  (\n    $('Get GiveWP Donation Details').item.json.donation.donor.prefix\n    || \"\"\n  ).replace(\".\", \"\")\n}}",
+              "type": "string"
+            },
+            {
+              "id": "b31702a4-7486-4531-b175-a7fafcef6b3b",
+              "name": "emails",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n\n  const primaryEmail = donation.donor.email || donation.email;\n  const additionalEmails = donation.donor.additionalEmails || [];\n\n  const emailArray = [{ email: primaryEmail, is_primary: true }];\n\n  additionalEmails.forEach(email => {\n    if (email && email !== primaryEmail) {\n      emailArray.push({ email, is_primary: false });\n    }\n  });\n\n  return emailArray;\n})()\n}}",
+              "type": "array"
+            },
+            {
+              "id": "c5a129d0-bfe3-4ae4-932d-f6cef84363cb",
+              "name": "phone_numbers",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  const phone = donation.donor.phone;\n\n  return phone\n    ? [{ number: phone, is_primary: true }]\n    : [];\n})()\n}}",
+              "type": "array"
+            },
+            {
+              "id": "ff38d2c0-322e-4386-a985-a09dd455d19d",
+              "name": "type",
+              "value": "={{ [\"Donor\"] }}",
+              "type": "array"
+            },
+            {
+              "id": "e1c7487b-b2fe-4351-a1a7-6ddca7160af2",
+              "name": "address",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  const meta = (donation.donor && donation.donor.meta) || {};\n  const billing = donation.billingAddress || null;\n\n  const buildGiftAidAddress = () => {\n    const hasAny =\n      meta._give_gift_aid_card_address ||\n      meta._give_gift_aid_card_zip ||\n      meta._give_gift_aid_country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: meta._give_gift_aid_card_address || null,\n      address_line_two: null,\n      city: null,\n      region: null,\n      postal_code: meta._give_gift_aid_card_zip || null,\n      country: meta._give_gift_aid_country || null,\n    };\n  };\n\n  const buildBillingAddress = () => {\n    if (!billing) return null;\n\n    const hasAny =\n      billing.address1 ||\n      billing.address2 ||\n      billing.city ||\n      billing.state ||\n      billing.zip ||\n      billing.country;\n\n    if (!hasAny) return null;\n\n    return {\n      address_line_one: billing.address1 || null,\n      address_line_two: billing.address2 || null,\n      city: billing.city || null,\n      region: billing.state || null,\n      postal_code: billing.zip || null,\n      country: billing.country || null,\n    };\n  };\n\n  const addr = buildGiftAidAddress() || buildBillingAddress();\n  return addr ? [addr] : [];\n})()\n}}",
+              "type": "array"
+            },
+            {
+              "id": "dd3e4dd3-0f15-4c70-9a11-d84743afaa9c",
+              "name": "contact_preferences",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  const isMailchimpMeta = !!donation.meta._give_mc_donation_optin_status;\n\n  return isMailchimpMeta ? [\"Email\"] : [];\n})()\n}}",
+              "type": "array"
+            },
+            {
+              "id": "99a7f576-2b85-4776-b439-40788d2896b8",
+              "name": "c_give_wp_notes",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  const meta = (donation.donor && donation.donor.meta) || {};\n\n  let notes = \"\";\n  notes += `=== Donation #${donation.id} ===\\n`;\n  notes += `Date: ${donation.createdAt}\\n`;\n  notes += `Amount: ${donation.amount.formatted} ${donation.amount.currency}\\n`;\n  notes += `Fee Recovered: ${donation.feeAmountRecovered?.formatted || ''} ${donation.feeAmountRecovered?.currency || ''}\\n`;\n  notes += `Type: ${donation.type}\\n`;\n  notes += `Gateway: ${donation.gatewayId}\\n`;\n  notes += `Form: ${donation.formTitle} (#${donation.formId})\\n`;\n  notes += `Campaign: ${donation.campaign?.title || \"N/A\"}\\n`;\n\n  if (donation.type === \"subscription\") {\n    notes += `\\n--- Subscription #${donation.subscriptionId} ---\\n`;\n    notes += `Status: ${donation.subscription.status}\\n`;\n    notes += `Frequency: Every ${donation.subscription.frequency} ${donation.subscription.period}(s)\\n`;\n    notes += `Next Renewal: ${donation.subscription.renewsAt}\\n`;\n    notes += `Gateway Subscription ID: ${donation.subscription.gatewaySubscriptionId}\\n`;\n  }\n\n  if (meta) {\n    if (meta._give_gift_aid_opt_in_date) {\n      notes += `\\nGift Aid Opted In: ${meta._give_gift_aid_opt_in_date}\\n`;\n    }\n    if (meta._give_stripe_customer_id_test) {\n      notes += `Stripe Customer ID (Test): ${meta._give_stripe_customer_id_test}\\n`;\n    }\n  }\n\n  notes += `\\nLast Updated: ${new Date().toISOString()}`;\n\n  return notes;\n})()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "1016980a-0f03-4a09-a427-a31987235c4c",
+              "name": "c_opt_in_quarterly_prize_draw",
+              "value": "={{\n(() => {\n  const donation = $('Get GiveWP Donation Details').item.json.donation;\n  return !!(donation.meta && donation.meta.c_opt_in_quarterly_prize_draw);\n})()\n}}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -656,
+        0
+      ],
+      "id": "96f7fdc9-d2e7-431d-8d6c-c146e71c3bfd",
+      "name": "Prepare Person Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load the object from the previous node\nconst data = $input.item.json;\n\n// Remove first-level empty values\nconst cleaned = Object.fromEntries(\n  Object.entries(data).filter(([key, val]) => {\n    if (val === null || val === undefined) return false;\n\n    // Empty string\n    if (typeof val === 'string' && val.trim() === '') return false;\n\n    // Empty array\n    if (Array.isArray(val) && val.length === 0) return false;\n\n    // Empty object\n    if (\n      typeof val === 'object' &&\n      !Array.isArray(val) &&\n      Object.keys(val).length === 0\n    ) {\n      return false;\n    }\n\n    // If false or otherwise null/empty\n    if(!val) return false\n\n    return true;\n  })\n);\n\n// Return cleaned object\nreturn [{ json: cleaned }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        0
+      ],
+      "id": "7cc8b187-42de-4847-bc32-7ec0c3de782c",
+      "name": "Remove empty values"
     }
   ],
   "pinData": {
@@ -1435,18 +1541,18 @@
           "headers": {
             "host": "pangeatrust.app.n8n.cloud",
             "user-agent": "WordPress/6.8.3; https://www.pangeatrust.org",
-            "content-length": "394",
+            "content-length": "386",
             "accept": "*/*",
             "accept-encoding": "gzip, br",
             "cdn-loop": "cloudflare; loops=1; subreqs=1",
             "cf-connecting-ip": "35.214.68.210",
             "cf-ew-via": "15",
             "cf-ipcountry": "GB",
-            "cf-ray": "9a58fdf091691fc9-LHR",
+            "cf-ray": "9a7bab2b337cedf6-LHR",
             "cf-visitor": "{\"scheme\":\"https\"}",
             "cf-worker": "n8n.cloud",
             "content-type": "application/json",
-            "x-forwarded-for": "35.214.68.210, 172.64.192.144",
+            "x-forwarded-for": "35.214.68.210, 141.101.99.206",
             "x-forwarded-host": "pangeatrust.app.n8n.cloud",
             "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
@@ -1458,23 +1564,23 @@
           "query": {},
           "body": {
             "event": {
-              "id": "donation_status_changed",
+              "id": "donation_created",
               "type": "donation_event",
-              "description": "Occurs when a donation has the status changed"
+              "description": "Occurs when a new donation is created"
             },
             "data": {
               "donation": {
-                "id": 6297,
-                "subscriptionId": 52,
-                "status": "publish",
+                "id": 6333,
+                "subscriptionId": 67,
+                "status": "give_subscription",
                 "firstName": "Amer",
-                "lastName": "Test",
-                "email": "itsme+test@wildamer.com",
-                "amount": "40.11",
-                "feeAmountRecovered": "5.11",
+                "lastName": "Test 5",
+                "email": "itsme+test5@wildamer.com",
+                "amount": "12.33",
+                "feeAmountRecovered": "2.33",
                 "currency": "GBP",
-                "type": "subscription",
-                "createdAt": "November 28, 2025 9:55 am"
+                "type": "renewal",
+                "createdAt": "February 2, 2026 2:42 pm"
               }
             }
           },
@@ -1574,17 +1680,6 @@
         [
           {
             "node": "Prepare Gift Aid ID",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Person Data": {
-      "main": [
-        [
-          {
-            "node": "If contact found",
             "type": "main",
             "index": 0
           }
@@ -1881,6 +1976,13 @@
         ],
         [
           {
+            "node": "If Company not Empty",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Switch: Stripe or Paypal Refund",
             "type": "main",
             "index": 0
@@ -1978,13 +2080,35 @@
           }
         ]
       ]
+    },
+    "Prepare Person Data": {
+      "main": [
+        [
+          {
+            "node": "Remove empty values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove empty values": {
+      "main": [
+        [
+          {
+            "node": "If contact found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "9ac0ad34-dd3f-4b53-9e3c-fbee1c263831",
+  "versionId": "39dc7cf6-f3ba-4e97-9fd5-db9c41b1a64b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "ef7b624a3ea419f520a4dded69b6f6ae3c219cae9320c4425bfd81c17b8bcfc2"
